@@ -11,4 +11,8 @@ struct Athena::Messenger::Stamp::Handled < Athena::Messenger::Stamp
   def result
     @result_container.value
   end
+
+  def result(type : T.class) : T forall T
+    self.result.as T
+  end
 end

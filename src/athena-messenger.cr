@@ -93,7 +93,7 @@ middleware_iterator = AMG::Middleware::HandleMessage.new locator
 bus = AMG::MessageBus.new middleware_iterator
 
 env = bus.dispatch MyMessage.new 15
-result = env.last(AMG::Stamp::Handled).result # => "foo" : String
+result = env.last(AMG::Stamp::Handled).result String # => "foo" : String
 pp result, typeof(result)
 
 # env = bus.dispatch MyMessage2.new 20
