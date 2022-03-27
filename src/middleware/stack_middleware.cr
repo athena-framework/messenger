@@ -33,7 +33,8 @@ class Athena::Messenger::Middleware::Stack
 
     case middleware
     in AMG::Middleware::Interface then @stack.stack << middleware
-    in Enumerable                 then @stack.iterator = middleware
+    in Enumerable                 then @stack.iterator = middleware.each
+    in Iterator                   then @stack.iterator = middleware
     end
   end
 
