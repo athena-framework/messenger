@@ -3,11 +3,11 @@ require "./locator_interface"
 class Athena::Messenger::Handler::Locator
   include Athena::Messenger::Handler::LocatorInterface
 
-  @handlers : Hash(AMG::Message.class, Array(AMG::HandlerType))
+  @handlers : Hash(AMG::Message.class, Array(AMG::Handler::Type))
 
-  def initialize(@handlers : Hash(AMG::Message.class, Array(AMG::HandlerType))); end
+  def initialize(@handlers : Hash(AMG::Message.class, Array(AMG::Handler::Type))); end
 
-  def handlers(envelope : AMG::Envelope, & : AMG::Handler::Interface ->) : Nil
+  def handlers(envelope : AMG::Envelope, & : AMG::Handler::Type ->) : Nil
     seen = Set(String).new
 
     self.list_types envelope do |type|
@@ -28,7 +28,7 @@ class Athena::Messenger::Handler::Locator
     end
   end
 
-  private def should_handle(envelope : AMG::Envelope, descriptor : AMG::Handler::Descriptor) : Bool
+  private def should_handle(envelope : AMG::Envelope, descriptor : AMG::Handler::Type) : Bool
     # TODO: Check for ReceivedStamp
     # TODO: Check if it should be handled by this transport
 

@@ -17,7 +17,7 @@ class Athena::Messenger::MessageBus
   def initialize(@middleware : Enumerable(AMG::Middleware::Interface)); end
 
   def dispatch(message : AMG::Message | AMG::Envelope, stamps : Array(AMG::Stamp) = [] of AMG::Stamp) : AMG::Envelope
-    envelope = AMG::Envelope.wrap message
+    envelope = AMG::Envelope.wrap message, stamps
 
     middleware = if (m = @middleware).responds_to? :rewind
                    m.rewind

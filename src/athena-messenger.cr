@@ -1,4 +1,9 @@
 require "log"
+require "json"
+
+# This needs to be first such that the alias is available to the rest of the files.
+abstract struct Athena::Messenger::Stamp
+end
 
 require "./envelope"
 require "./message"
@@ -28,7 +33,9 @@ module Athena::Messenger
     end
   end
 
-  alias HandlerType = AMG::Handler::Interface # | Proc(AMG::Message)
+  module Handler
+    alias Type = AMG::Handler::Interface # | AMG::Handler::BatchInterface
+  end
 end
 
 record MyMessage < AMG::Message, id : Int32
@@ -65,11 +72,12 @@ class MyMiddleware2
   end
 end
 
-struct MyMessageHandler
+struct Foo::MyMessageHandler
   include Athena::Messenger::Handler::Interface
 
   def call(message : MyMessage) : String
-    "foo"
+    pp "handling"
+    "abcdefgh".chars.sample.to_s
   end
 end
 
@@ -83,19 +91,34 @@ end
 
 locator = AMG::Handler::Locator.new(
   {
-    MyMessage  => ([MyMessageHandler.new] of AMG::HandlerType),
-    MyMessage2 => ([MyMessageHandler2.new] of AMG::HandlerType),
-  } of AMG::Message.class => Array(AMG::HandlerType)
+    MyMessage  => ([Foo::MyMessageHandler.new] of AMG::Handler::Type),
+    MyMessage2 => ([MyMessageHandler2.new] of AMG::Handler::Type),
+  } of AMG::Message.class => Array(AMG::Handler::Type)
 )
 
 middleware_iterator = AMG::Middleware::HandleMessage.new locator
 
 bus = AMG::MessageBus.new middleware_iterator
 
-env = bus.dispatch MyMessage.new 15
-result = env.last(AMG::Stamp::Handled).result String # => "foo" : String
-pp result, typeof(result)
+env = bus.dispatch MyMessage2.new 15
 
-# env = bus.dispatch MyMessage2.new 20
-# result = env.last(AMG::Stamp::Handled).result # => "foo" : String
-# pp result, typeof(result)
+pp env
+# env.without AMG::Stamp::Handled
+#
+# pp env
+
+# h = env.last? AMG::Stamp::Handled
+# pp h, typeof(h)
+
+# env.all AMG::Stamp::Handled do |stamp|
+#   pp stamp, typeof(stamp)
+# end
+
+# env = bus.dispatch env
+
+# puts
+# puts
+
+# env.all AMG::Stamp::Handled do |stamp|
+#   pp stamp, typeof(stamp)
+# end

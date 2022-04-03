@@ -14,10 +14,12 @@ class Athena::Messenger::Middleware::HandleMessage
     exceptions = [] of Exception
     at_least_one_handler = false
 
-    @locator.handlers envelope do |descriptor|
-      # pp descriptor
+    @locator.handlers envelope do |handler|
+      next if self.message_has_already_been_handled? envelope, handler
+
       # TODO: Check for batch handler and AckStamp
-      handled_stamp = descriptor.invoke message
+
+      handled_stamp = handler.invoke message
 
       envelope << handled_stamp
       # TODO: Add logging
@@ -44,5 +46,13 @@ class Athena::Messenger::Middleware::HandleMessage
 
     # stack.next.handle envelope, stack
     envelope
+  end
+
+  private def message_has_already_been_handled?(envelope : AMG::Envelope, handler : AMG::Handler::Type) : Bool
+    envelope.all(AMG::Stamp::Handled) do |stamp|
+      return true if handler.name(envelope.message) == stamp.handler_name
+    end
+
+    false
   end
 end
