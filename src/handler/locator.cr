@@ -3,11 +3,21 @@ require "./locator_interface"
 class Athena::Messenger::Handler::Locator
   include Athena::Messenger::Handler::LocatorInterface
 
-  @handlers : Hash(AMG::Message.class, Array(AMG::Handler::Type))
+  @handlers = Hash(AMG::Message.class, Enumerable(AMG::Handler::Descriptor)).new do |hash, key|
+    hash[key] = [] of AMG::Handler::Descriptor
+  end
 
-  def initialize(@handlers : Hash(AMG::Message.class, Array(AMG::Handler::Type))); end
+  def handler(message_class : M.class, name : String? = nil, &block : M -> R) : AMG::Handler::Descriptor forall M, R
+    @handlers[M] << (handler = AMG::Handler::Descriptor::Message(M, R).new block, name)
+    handler
+  end
 
-  def handlers(envelope : AMG::Envelope, & : AMG::Handler::Type ->) : Nil
+  def handler(message_class : M.class, context_class : C.class, name : String? = nil, &block : M, C -> R) : AMG::Handler::Descriptor forall M, C, R
+    @handlers[M] << (handler = AMG::Handler::Descriptor::MessageContext(M, C?, R).new block, name)
+    handler
+  end
+
+  def handlers(envelope : AMG::Envelope, & : AMG::Handler::Descriptor ->) : Nil
     seen = Set(String).new
 
     self.list_types envelope do |type|
@@ -28,12 +38,12 @@ class Athena::Messenger::Handler::Locator
     end
   end
 
-  private def should_handle(envelope : AMG::Envelope, descriptor : AMG::Handler::Type) : Bool
-    # TODO: Check for ReceivedStamp
-    # TODO: Check if it should be handled by this transport
+  # private def should_handle(envelope : AMG::Envelope, descriptor : AMG::Handler::Type) : Bool
+  #   # TODO: Check for ReceivedStamp
+  #   # TODO: Check if it should be handled by this transport
 
-    true
-  end
+  #   true
+  # end
 
   private def list_types(envelope : AMG::Envelope, & : AMG::Message.class ->) : Nil
     @handlers.each_key.select { |k| k <= envelope.message.class }.each do |type|

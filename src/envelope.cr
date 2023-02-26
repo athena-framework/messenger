@@ -16,6 +16,10 @@ struct Athena::Messenger::Envelope
     end
   end
 
+  def <<(stamp : AMG::Stamp) : Nil
+    self.<<({stamp})
+  end
+
   def <<(*stamps : AMG::Stamp) : Nil
     self.<< stamps
   end
@@ -40,12 +44,12 @@ struct Athena::Messenger::Envelope
     end
   end
 
-  def last(stamp_type : T.class) : AMG::Stamp forall T
+  def last(stamp_type : T.class) : T forall T
     @stamps[stamp_type].last.as T
   end
 
-  def last?(stamp_type : T.class) : AMG::Stamp? forall T
-    @stamps[stamp_type]?.try &.last.as T
+  def last?(stamp_type : T.class) : T? forall T
+    @stamps[stamp_type]?.try &.last.as? T
   end
 
   def without(stamp_type : T.class) : Nil forall T

@@ -9,38 +9,49 @@ class Athena::Messenger::Middleware::HandleMessage
   def handle(envelope : AMG::Envelope, stack : AMG::Middleware::StackInterface) : AMG::Envelope
     message = envelope.message
 
-    # TODO: Setup log context
+    h = nil
 
     exceptions = [] of Exception
-    at_least_one_handler = false
+    already_handled = false
 
     @locator.handlers envelope do |handler|
-      next if self.message_has_already_been_handled? envelope, handler
+      if self.message_has_already_been_handled? envelope, handler
+        already_handled = true
+        next
+      end
 
-      # TODO: Check for batch handler and AckStamp
+      begin
+        h = handler
 
-      handled_stamp = handler.invoke message
+        # TODO: Check for batch handler and AckStamp
+        handled_stamp = if false
+                          raise ""
+                        else
+                          # TODO: Pass context arg for extra data
+                          self.call_handler handler, message, nil, envelope.last?(AMG::Stamp::HandlerContext)
+                        end
 
-      envelope << handled_stamp
-      # TODO: Add logging
+        envelope << handled_stamp
 
-    rescue ex : Exception
-      exceptions << ex
-    else
-      at_least_one_handler = true
+        Log.info { "Message '#{message.class}' handled by '#{handler.name}'" }
+      rescue ex : Exception
+        exceptions << ex
+      end
     end
 
     # TODO: Check for FlushBatchHandlersStamp
 
-    unless at_least_one_handler
+    if h.nil? && !already_handled
       unless @allow_no_handlers
         # TODO: Raise NoHandlerForMessageException
       end
 
-      # TODO: Add logging
+      Log.info { "No handler for message '#{message.class}'" }
     end
 
     unless exceptions.empty?
+      pp exceptions
+      raise "exception yo"
       # TODO: Raise HandlerFailedException
     end
 
@@ -48,11 +59,20 @@ class Athena::Messenger::Middleware::HandleMessage
     envelope
   end
 
-  private def message_has_already_been_handled?(envelope : AMG::Envelope, handler : AMG::Handler::Type) : Bool
+  private def message_has_already_been_handled?(envelope : AMG::Envelope, handler : AMG::Handler::Descriptor) : Bool
     envelope.all(AMG::Stamp::Handled) do |stamp|
-      return true if handler.name(envelope.message) == stamp.handler_name
+      return true if handler.name == stamp.handler_name
     end
 
     false
+  end
+
+  private def call_handler(
+    handler : AMG::Handler::Descriptor,
+    message : AMG::Message,
+    acknowledger : AMG::Handler::Acknowledger?,
+    handler_context : AMG::Stamp::HandlerContext?
+  ) : AMG::Stamp::Handled
+    handler.call message, acknowledger, handler_context.try &.context
   end
 end

@@ -1,11 +1,8 @@
-require "log"
-require "json"
-
 # This needs to be first such that the alias is available to the rest of the files.
-abstract struct Athena::Messenger::Stamp
-end
+# abstract struct Athena::Messenger::Stamp; end
 
 require "./envelope"
+require "./logging"
 require "./message"
 require "./message_bus"
 
@@ -32,10 +29,6 @@ module Athena::Messenger
       @value == other.value
     end
   end
-
-  module Handler
-    alias Type = AMG::Handler::Interface # | AMG::Handler::BatchInterface
-  end
 end
 
 record MyMessage < AMG::Message, id : Int32
@@ -45,65 +38,72 @@ struct MyStamp < AMG::Stamp
 end
 
 struct MyMessageHandler
-  include Athena::Messenger::Handler::Interface
+  include AMG::Handler::Interface
 
   def call(message : MyMessage) : String
     "foo"
   end
 end
 
-class MyMiddleware
-  include AMG::Middleware::Interface
+# class MyMiddleware
+#   include AMG::Middleware::Interface
 
-  def handle(envelope : AMG::Envelope, stack : AMG::Middleware::StackInterface) : AMG::Envelope
-    pp "foo"
+#   def handle(envelope : AMG::Envelope, stack : AMG::Middleware::StackInterface) : AMG::Envelope
+#     pp "foo"
 
-    stack.next.handle envelope, stack
-  end
+#     stack.next.handle envelope, stack
+#   end
+# end
+
+# class MyMiddleware2
+#   include AMG::Middleware::Interface
+
+#   def handle(envelope : AMG::Envelope, stack : AMG::Middleware::StackInterface) : AMG::Envelope
+#     pp "bar"
+
+#     stack.next.handle envelope, stack
+#   end
+# end
+
+# locator = AMG::Handler::Locator.new({
+#   MyMessage => [descriptor],
+# })
+
+locator = AMG::Handler::Locator.new
+
+locator.handler MyMessage do |msg|
+  123
 end
 
-class MyMiddleware2
-  include AMG::Middleware::Interface
-
-  def handle(envelope : AMG::Envelope, stack : AMG::Middleware::StackInterface) : AMG::Envelope
-    pp "bar"
-
-    stack.next.handle envelope, stack
-  end
+struct MyContext
+  include AMG::Handler::Context
+  getter name : String = "Fred"
 end
 
-struct Foo::MyMessageHandler
-  include Athena::Messenger::Handler::Interface
-
-  def call(message : MyMessage) : String
-    pp "handling"
-    "abcdefgh".chars.sample.to_s
-  end
+locator.handler MyMessage2, MyContext? do |_, ctx|
+  ctx.try(&.name) || "Bob"
 end
 
-struct MyMessageHandler2
-  include Athena::Messenger::Handler::Interface
+# pp locator
 
-  def call(message : MyMessage2) : Int32
-    123
-  end
-end
-
-locator = AMG::Handler::Locator.new(
-  {
-    MyMessage  => ([Foo::MyMessageHandler.new] of AMG::Handler::Type),
-    MyMessage2 => ([MyMessageHandler2.new] of AMG::Handler::Type),
-  } of AMG::Message.class => Array(AMG::Handler::Type)
-)
+# # Log.setup_from_env
+Log.setup :none
 
 middleware_iterator = AMG::Middleware::HandleMessage.new locator
 
+# pp middleware_iterator
+
 bus = AMG::MessageBus.new middleware_iterator
+# pp bus.dispatch MyMessage.new 123
 
-env = bus.dispatch MyMessage2.new 15
+msg = MyMessage2.new 456
 
-pp env
-# env.without AMG::Stamp::Handled
+env = AMG::Envelope.new msg
+# env << AMG::Stamp::HandlerContext.new(MyContext.new)
+
+pp bus.dispatch(env).last(AMG::Stamp::Handled).result
+# pp env
+# pp env.without AMG::Stamp::Handled
 #
 # pp env
 
