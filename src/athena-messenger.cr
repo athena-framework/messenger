@@ -1,7 +1,9 @@
 # This needs to be first such that the alias is available to the rest of the files.
-# abstract struct Athena::Messenger::Stamp; end
+abstract struct Athena::Messenger::Stamp; end
 
+require "./annotations"
 require "./envelope"
+require "./handleable"
 require "./logging"
 require "./message"
 require "./message_bus"
@@ -12,6 +14,8 @@ require "./stamp/*"
 
 # Convenience alias to make referencing `Athena::Messenger` types easier.
 alias AMG = Athena::Messenger
+
+alias AMGA = AMG::Annotations
 
 module Athena::Messenger
   VERSION = "0.1.0"
@@ -31,18 +35,12 @@ module Athena::Messenger
   end
 end
 
+Log.setup :none
+
 record MyMessage < AMG::Message, id : Int32
 record MyMessage2 < AMG::Message, id : Int32
 
 struct MyStamp < AMG::Stamp
-end
-
-struct MyMessageHandler
-  include AMG::Handler::Interface
-
-  def call(message : MyMessage) : String
-    "foo"
-  end
 end
 
 # class MyMiddleware
@@ -69,56 +67,50 @@ end
 #   MyMessage => [descriptor],
 # })
 
+struct MyMessageHandler
+  include AMG::Handler::Interface
+
+  @[AMGA::AsMessageHandler]
+  def my_message(message : MyMessage) : Int32
+    message.id
+  end
+end
+
 locator = AMG::Handler::Locator.new
 
-locator.handler MyMessage do |msg|
-  123
-end
+locator.handler MyMessageHandler.new
 
-struct MyContext
-  include AMG::Handler::Context
-  getter name : String = "Fred"
-end
-
-locator.handler MyMessage2, MyContext? do |_, ctx|
-  ctx.try(&.name) || "Bob"
-end
-
-# pp locator
-
-# # Log.setup_from_env
-Log.setup :none
-
-middleware_iterator = AMG::Middleware::HandleMessage.new locator
-
-# pp middleware_iterator
-
-bus = AMG::MessageBus.new middleware_iterator
-# pp bus.dispatch MyMessage.new 123
-
-msg = MyMessage2.new 456
-
-env = AMG::Envelope.new msg
-# env << AMG::Stamp::HandlerContext.new(MyContext.new)
-
-pp bus.dispatch(env).last(AMG::Stamp::Handled).result
-# pp env
-# pp env.without AMG::Stamp::Handled
-#
-# pp env
-
-# h = env.last? AMG::Stamp::Handled
-# pp h, typeof(h)
-
-# env.all AMG::Stamp::Handled do |stamp|
-#   pp stamp, typeof(stamp)
+# locator.handler MyMessage do
 # end
 
-# env = bus.dispatch env
+handle_message = AMG::Middleware::HandleMessage.new locator
+bus = AMG::MessageBus.new([
+  AMG::Middleware::AddBusNameStamp.new("default"),
+  handle_message,
+] of AMG::Middleware::Interface)
 
-# puts
-# puts
+# class Test
+#   include AMG::Handleable(Int32)
 
-# env.all AMG::Stamp::Handled do |stamp|
-#   pp stamp, typeof(stamp)
+#   def initialize(@message_bus : AMG::MessageBusInterface); end
+
+#   def test : Int32
+#     self.handle(MyMessage.new 10) * 10
+#   end
 # end
+
+# t = Test.new bus
+
+# # pp t.test
+
+env = bus.dispatch MyMessage.new 123
+
+# message = MyMessage.new 123
+# envelope = AMG::Envelope.wrap message
+
+# pp envelope
+
+# e2 = envelope.with AMG::Stamp::BusName.new "Foo"
+
+# pp envelope
+# pp e2

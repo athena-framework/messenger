@@ -28,6 +28,6 @@ class Athena::Messenger::MessageBus
 
     stack = AMG::Middleware::Stack.new middleware
 
-    middleware.first.handle envelope, stack
+    stack.next.handle envelope, stack
   end
 end

@@ -31,8 +31,7 @@ class Athena::Messenger::Middleware::HandleMessage
                           self.call_handler handler, message, nil, envelope.last?(AMG::Stamp::HandlerContext)
                         end
 
-        envelope << handled_stamp
-
+        envelope = envelope.with handled_stamp
         Log.info { "Message '#{message.class}' handled by '#{handler.name}'" }
       rescue ex : Exception
         exceptions << ex
@@ -50,13 +49,11 @@ class Athena::Messenger::Middleware::HandleMessage
     end
 
     unless exceptions.empty?
-      pp exceptions
       raise "exception yo"
       # TODO: Raise HandlerFailedException
     end
 
-    # stack.next.handle envelope, stack
-    envelope
+    stack.next.handle envelope, stack
   end
 
   private def message_has_already_been_handled?(envelope : AMG::Envelope, handler : AMG::Handler::Descriptor) : Bool

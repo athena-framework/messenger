@@ -32,6 +32,10 @@ abstract struct Athena::Messenger::Handler::Descriptor
     def call(message : AMG::Message, acknowledger : AMG::Handler::Acknowledger?, context : AMG::Handler::Context? = nil) : AMG::Stamp::Handled
       AMG::Stamp::Handled.new @handler.call(message.as M), @name
     end
+
+    def message_class : AMG::Message.class
+      M
+    end
   end
 
   struct MessageContext(M, C, R) < Athena::Messenger::Handler::Descriptor
@@ -47,6 +51,10 @@ abstract struct Athena::Messenger::Handler::Descriptor
 
     def call(message : AMG::Message, acknowledger : AMG::Handler::Acknowledger?, context : AMG::Handler::Context? = nil) : AMG::Stamp::Handled
       AMG::Stamp::Handled.new @handler.call(message.as M, context.as C?), @name
+    end
+
+    def message_class : AMG::Message.class
+      M
     end
   end
 
