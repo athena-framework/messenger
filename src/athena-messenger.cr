@@ -8,6 +8,7 @@ require "./logging"
 require "./message"
 require "./message_bus"
 
+require "./exceptions/*"
 require "./handler/*"
 require "./middleware/*"
 require "./stamp/*"
@@ -15,6 +16,7 @@ require "./stamp/*"
 # Convenience alias to make referencing `Athena::Messenger` types easier.
 alias AMG = Athena::Messenger
 
+# Convenience alias to make referencing `AMG::Annotations` types easier.
 alias AMGA = AMG::Annotations
 
 module Athena::Messenger

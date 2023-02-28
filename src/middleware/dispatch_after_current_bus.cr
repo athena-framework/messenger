@@ -62,7 +62,7 @@ struct Athena::Messenger::Middleware::DispatchAfterCurrentBus
     @root_dispatcher_call_running = false
 
     unless exceptions.empty?
-      raise "Exceptions"
+      raise AMG::Exceptions::DelayedMessageHandling.new exceptions
     end
 
     returned_envelope

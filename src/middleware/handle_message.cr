@@ -25,6 +25,7 @@ class Athena::Messenger::Middleware::HandleMessage
 
         # TODO: Check for batch handler and AckStamp
         handled_stamp = if false
+                          # TODO: Handle batch handlers
                           raise ""
                         else
                           # TODO: Pass context arg for extra data
@@ -42,15 +43,14 @@ class Athena::Messenger::Middleware::HandleMessage
 
     if h.nil? && !already_handled
       unless @allow_no_handlers
-        # TODO: Raise NoHandlerForMessageException
+        raise AMG::Exceptions::NoHandlerForMessage.new "No handler for message '#{message.class}'."
       end
 
       Log.info { "No handler for message '#{message.class}'" }
     end
 
     unless exceptions.empty?
-      raise "exception yo"
-      # TODO: Raise HandlerFailedException
+      raise AMG::Exceptions::HandlerFailed.new envelope, exceptions
     end
 
     stack.next.handle envelope, stack
