@@ -7,15 +7,13 @@ struct Athena::Messenger::Envelope
 
   getter message : AMG::Message
 
-  @stamps = Hash(AMG::Stamp.class, Array(AMG::Stamp)).new do |hash, key|
-    hash[key] = [] of AMG::Stamp
-  end
+  @stamps = Hash(AMG::Stamp.class, Array(AMG::Stamp)).new
 
   def_clone
 
   def initialize(@message : AMG::Message, stamps : Enumerable(AMG::Stamp) = [] of AMG::Stamp)
     stamps.each do |stamp|
-      @stamps[stamp.class] << stamp
+      self.add @stamps, stamp
     end
   end
 
@@ -31,7 +29,7 @@ struct Athena::Messenger::Envelope
     cloned = self.clone
 
     stamps.each do |stamp|
-      cloned.@stamps[stamp.class] << stamp
+      self.add cloned.@stamps, stamp
     end
 
     cloned
@@ -59,6 +57,10 @@ struct Athena::Messenger::Envelope
     @stamps[stamp_type]?.try &.last.as? T
   end
 
+  def all : Hash(AMG::Stamp.class, Array(AMG::Stamp))
+    @stamps
+  end
+
   def all(stamp_type : T.class) : Array(T) forall T
     return [] of T unless (stamps = @stamps[stamp_type]?)
 
@@ -77,5 +79,11 @@ struct Athena::Messenger::Envelope
         yield stamp
       end
     end
+  end
+
+  # TODO: Remove when/if https://github.com/crystal-lang/crystal/issues/13128 is resolved.
+  @[AlwaysInline]
+  private def add(stamps : Hash(AMG::Stamp.class, Array(AMG::Stamp)), stamp : AMG::Stamp) : Nil
+    (stamps[stamp.class] ||= [] of AMG::Stamp) << stamp
   end
 end
