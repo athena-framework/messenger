@@ -31,7 +31,7 @@ module Athena::Messenger
       T
     end
 
-    def ==(other : AVD::Container) : Bool
+    def ==(other : AMG::Container) : Bool
       @value == other.value
     end
   end

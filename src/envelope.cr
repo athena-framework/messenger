@@ -11,6 +11,14 @@ struct Athena::Messenger::Envelope
 
   def_clone
 
+  def self.new(message : AMG::Message, stamp : AMG::Stamp) : self
+    new message, {stamp}
+  end
+
+  def self.new(message : AMG::Message, *stamps : AMG::Stamp) : self
+    new message, stamps
+  end
+
   def initialize(@message : AMG::Message, stamps : Enumerable(AMG::Stamp) = [] of AMG::Stamp)
     stamps.each do |stamp|
       self.add @stamps, stamp

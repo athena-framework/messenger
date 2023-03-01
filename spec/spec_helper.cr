@@ -7,6 +7,18 @@ require "./fixtures/**"
 
 ASPEC.run_all
 
+struct MockBus
+  include AMG::MessageBusInterface
+
+  @callback : Proc(AMG::Envelope, AMG::Envelope)
+
+  def initialize(&@callback : AMG::Envelope -> AMG::Envelope); end
+
+  def dispatch(message : AMG::Message | AMG::Envelope, stamps : Array(AMG::Stamp) = [] of AMG::Stamp) : AMG::Envelope
+    @callback.call AMG::Envelope.wrap message, stamps
+  end
+end
+
 struct MockMiddleware
   include AMG::Middleware::Interface
 
